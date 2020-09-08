@@ -12,39 +12,44 @@ use std::io::stdin;
 // Define buffer size
 const BUFFER_SIZE: usize = 1024;
 
-// Clip point
-const CLAMP_VALUE: i32 = std::i32::MAX / 16;
-
 pub(crate) fn audio_test() -> Result<(), pa::Error> {
 
     //=================================================================================
     // Write WAV
 
-    let spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: 44100,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-    };
+    eprintln!("Checking for WAV file...");
+    let wav_file = File::open("sine.wav");
 
-    let mut writer = hound::WavWriter::create("sine.wav", spec).unwrap();
+    if wav_file.is_ok() {
+        eprintln!("No need to create WAV file, already exists.");
+    } else {
+        eprintln!("Creating WAV file 'sine.wav':");
+        let spec = hound::WavSpec {
+            channels: 1,
+            sample_rate: 44100,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
 
-    for t in (0 .. 44100).map(|x| x as f32 / 44100.0) {
-        let sample = (t * 440.0 * 2.0 * PI).sin();
-        let amplitude = i16::MAX as f32;
-        writer.write_sample((sample * amplitude) as i16).unwrap();
+        let mut writer = hound::WavWriter::create("sine.wav", spec).unwrap();
+
+        for t in (0 .. 44100).map(|x| x as f32 / 44100.0) {
+            let sample = (t * 440.0 * 2.0 * PI).sin();
+            let amplitude = i16::MAX as f32;
+            writer.write_sample((sample * amplitude) as i16).unwrap();
+        }
+
+        writer.finalize().unwrap();
+
+        eprintln!("File created.");
     }
-
-    writer.finalize().unwrap();
 
     //=================================================================================
     // Read WAV
 
-    eprintln!("read WAV file from stdin");
-    //let file = File::open();
+    eprintln!("Playing WAV file:");
 
     // Set up the WAV reader.
-    //let stdin = stdin();
     let wav = hound::WavReader::open("sine.wav").expect("WAV reader open failed");
     let spec = wav.spec();
     eprintln!(
@@ -84,13 +89,6 @@ pub(crate) fn audio_test() -> Result<(), pa::Error> {
                         }
                     }
                 };
-                let s = if s > CLAMP_VALUE {
-                    CLAMP_VALUE
-                } else if s < -CLAMP_VALUE {
-                    -CLAMP_VALUE
-                } else {
-                    s
-                };
                 *b = s;
             }
         });
@@ -111,6 +109,8 @@ pub(crate) fn audio_test() -> Result<(), pa::Error> {
             }
         }
     }
+
+    eprintln!("Finished playing WAV file.");
 
     stream.stop()?;
     stream.close()?;
