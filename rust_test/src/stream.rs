@@ -57,7 +57,7 @@ fn run() -> Result<(), pa::Error> {
     let settings = pa::DuplexStreamSettings::new(input_params, output_params, SAMPLE_RATE, FRAMES);
 
     // Once the countdown reaches 0 we'll close the stream.
-    let mut count_down = 3.0;
+    let mut count_down = 10.0;
 
     // Keep track of the last `current_time` so we can calculate the delta time.
     let mut maybe_last_time = None;

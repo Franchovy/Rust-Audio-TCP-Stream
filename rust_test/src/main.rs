@@ -1,16 +1,10 @@
-//use proc_macro::quote_span;
-
 mod client;
 mod server;
 mod audio_test;
 mod beep;
 mod stream;
 
-//use client;
-//use server;
-//use audio_test;
-
-
+use std::{thread, time};
 
 fn main() {
     println!("Beep!");
@@ -19,15 +13,22 @@ fn main() {
     println!("Beep again!");
     audio_test::audio_test();
 
+    let sleep_time = time::Duration::from_millis(10000);
+
+
     println!("Testing stream.");
+
     std::thread::spawn(|| {
         stream::main();
     } );
+    std::thread::sleep(sleep_time);
+
 
     println!("Checking server.");
     std::thread::spawn(|| {
         server::run_server();
     } );
 
+    client::run_client();
     client::run_client();
 }
