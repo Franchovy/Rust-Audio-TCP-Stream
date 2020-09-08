@@ -14,7 +14,7 @@ const BUFFER_SIZE: usize = 1024;
 // Clip point
 const CLAMP_VALUE: i32 = std::i32::MAX / 16;
 
-fn main() -> Result<(), pa::Error> {
+fn audio_test() -> Result<(), pa::Error> {
 
     //=================================================================================
     // Write WAV
