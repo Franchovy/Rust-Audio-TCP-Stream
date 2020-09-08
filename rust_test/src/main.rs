@@ -11,6 +11,8 @@ mod audio_test;
 fn main() {
     println!("Hello, world!");
 
+    audio_test::audio_test();
+    
     std::thread::spawn(|| {
         server::run_server();
     } );

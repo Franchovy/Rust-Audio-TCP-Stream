@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 use std::i16;
+use std::fs::File;
 
 //extern crate hound;
 //extern crate portaudio;
@@ -14,7 +15,7 @@ const BUFFER_SIZE: usize = 1024;
 // Clip point
 const CLAMP_VALUE: i32 = std::i32::MAX / 16;
 
-fn audio_test() -> Result<(), pa::Error> {
+pub(crate) fn audio_test() -> Result<(), pa::Error> {
 
     //=================================================================================
     // Write WAV
@@ -40,10 +41,11 @@ fn audio_test() -> Result<(), pa::Error> {
     // Read WAV
 
     eprintln!("read WAV file from stdin");
+    //let file = File::open();
 
     // Set up the WAV reader.
-    let stdin = stdin();
-    let wav = hound::WavReader::new(stdin).expect("WAV reader open failed");
+    //let stdin = stdin();
+    let wav = hound::WavReader::open("sine.wav").expect("WAV reader open failed");
     let spec = wav.spec();
     eprintln!(
         "sample rate: {}, channels: {}, sample bits: {}, format: {:?}",
