@@ -4,6 +4,7 @@ mod client;
 mod server;
 mod audio_test;
 mod beep;
+mod stream;
 
 //use client;
 //use server;
@@ -17,6 +18,11 @@ fn main() {
 
     println!("Beep again!");
     audio_test::audio_test();
+
+    println!("Testing stream.");
+    std::thread::spawn(|| {
+        stream::main();
+    } );
 
     println!("Checking server.");
     std::thread::spawn(|| {
