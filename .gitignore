@@ -1,6 +1,6 @@
-debug/
-target/
+/rust_test/debug/
+rust_test/target/
 
-Cargo.lock
+rust_test/Cargo.lock
 
 **/*.rs.bk
