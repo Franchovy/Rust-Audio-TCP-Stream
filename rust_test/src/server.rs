@@ -2,13 +2,7 @@ use std::thread;
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
 
-
-//====================================================
-// All this should be moved to client as the audio player.
-extern crate portaudio;
-use portaudio as pa;
 use std::f64::consts::PI;
-use crate::beep::beep;
 
 const CHANNELS: i32 = 2;
 const NUM_SECONDS: i32 = 1;
@@ -102,7 +96,7 @@ pub(crate) fn run_server() {
     drop(listener);
 }
 
-fn stream_sine(stream: &mut TcpStream, mut duration: i32) -> Result<(), pa::Error> {
+fn stream_sine(stream: &mut TcpStream, mut duration: i32) -> Result<(), ()> {
 
     // Create sin table
     let mut sine = [0.0; TABLE_SIZE];
@@ -158,7 +152,7 @@ fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs
     let mut index = 0;
 
     const SAMPLE_RATE:i32 = 44100; //Assuming 44.1K sample rate
-    let size_leftover = size_in_secs * SAMPLE_RATE - (buffer.len() as i32 / 4); //fixme multiply with overflow
+    let size_leftover_in_secs = size_in_secs - (buffer.len() as i32 * SAMPLE_RATE / 4);
     let table_len_in_secs = table.len() as i32 / SAMPLE_RATE;
 
     while size_in_secs > table_len_in_secs as i32
@@ -176,7 +170,7 @@ fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs
         buffer[index..].copy_from_slice(&table_u8[..leftover_len]);
     }
 
-    size_leftover
+    size_leftover_in_secs
 }
 
 fn f32_to_u8(v: &[f32]) -> &[u8] {
