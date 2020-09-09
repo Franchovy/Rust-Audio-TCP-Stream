@@ -6,8 +6,8 @@ fn handle_client(mut stream: TcpStream) {
     let mut data = [0 as u8; 50]; // using 50 byte buffer
     while match stream.read(&mut data) {
         Ok(size) => {
-            // echo everything!
-            stream.write(&data[0..size]).unwrap();
+            println!("Server read from stream. Size: {} ", size);
+
             true
         },
         Err(_) => {
@@ -39,4 +39,8 @@ pub(crate) fn run_server() {
     }
     // close the socket listener
     drop(listener);
+}
+
+fn append_buffer(mut incoming_array: &[u8]) {
+    //for incoming_array
 }
