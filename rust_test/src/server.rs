@@ -62,7 +62,7 @@ pub(crate) fn run_server() {
                                 if choice.eq(b"sin") {
                                     println!("Choose play sine");
 
-
+                                    stream_sine(&mut stream, audio_msg_length);
                                 } else if choice.eq(b"mic") {
                                     println!("Choose play mic");
 
@@ -85,7 +85,7 @@ pub(crate) fn run_server() {
                         }
                     } {}
 
-                    handle_client(stream);
+                    //handle_client(stream);
                     //stream_sine(stream);
                 });
             }
@@ -102,7 +102,7 @@ pub(crate) fn run_server() {
     drop(listener);
 }
 
-fn stream_sine(mut stream: TcpStream, mut duration: i32) -> Result<(), pa::Error> {
+fn stream_sine(stream: &mut TcpStream, mut duration: i32) -> Result<(), pa::Error> {
 
     // Create sin table
     let mut sine = [0.0; TABLE_SIZE];
@@ -113,11 +113,11 @@ fn stream_sine(mut stream: TcpStream, mut duration: i32) -> Result<(), pa::Error
     const BUFFER_LENGTH:usize = 1000;
 
     // Write to stream
-    let mut data = [0 as u8; BUFFER_LENGTH];
+    let data = &mut [0 as u8; BUFFER_LENGTH];
 
     let mut cont:bool = true;
     while cont {
-        let size_left = fill_buffer_with_table_loop(&data, &sine, duration);
+        let size_left = fill_buffer_with_table_loop(&mut data[..], &sine, duration);
         duration = size_left;
 
         match stream.write(&*data) {
@@ -158,21 +158,22 @@ fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs
     let mut index = 0;
 
     const SAMPLE_RATE:i32 = 44100; //Assuming 44.1K sample rate
-    let size_leftover = size_in_secs * SAMPLE_RATE - buffer.len() as i32;
-    let mut table_len_in_secs = table.len() as i32 / SAMPLE_RATE;
+    let size_leftover = size_in_secs * SAMPLE_RATE - (buffer.len() as i32 / 4); //fixme multiply with overflow
+    let table_len_in_secs = table.len() as i32 / SAMPLE_RATE;
 
     while size_in_secs > table_len_in_secs as i32
-        && index + table.len() < buffer.len()
+        && index + table_u8.len() < buffer.len()
     {
         // Copy table
-        buffer[index..].copy_from_slice(table_u8);
+        buffer[index.. index + table_u8.len()].copy_from_slice(table_u8);
 
         size_in_secs -= table_len_in_secs as i32;
         index += table.len();
     }
     if size_in_secs as i32 > 0 {
         // Copy what's left of table
-        buffer[index..].copy_from_slice(&table_u8[..buffer[index..].len()]);
+        let leftover_len = buffer[index..].len();
+        buffer[index..].copy_from_slice(&table_u8[..leftover_len]);
     }
 
     size_leftover
