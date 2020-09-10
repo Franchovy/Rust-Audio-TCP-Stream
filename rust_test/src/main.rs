@@ -5,9 +5,11 @@ mod beep;
 mod stream;
 mod audio_buffer;
 
+use std::thread;
+
 fn main() {
     println!("Beep!");
-    //beep::beep();
+    beep::beep();
 
     //println!("Beep again!");
     //audio_test::audio_test();
@@ -22,7 +24,7 @@ fn main() {
     });
     std::thread::sleep(sleep_time);*/
 
-    //test_audio_buffer(); //doesn't pass tests. Can't waste time here.
+    //test_audio_buffer(); //doesn't pass tests.
 
     println!("Running server.");
     std::thread::spawn(|| {
@@ -31,9 +33,11 @@ fn main() {
 
     println!("Running client 1.");
 
-    std::thread::spawn(|| {
+    client::run_client();
+
+    /*std::thread::spawn(|| {
         client::run_client();
-    } );
+    } );*/
 
 /*    std::thread::sleep(std::time::Duration::from_secs(1));
 

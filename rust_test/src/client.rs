@@ -1,11 +1,10 @@
 use std::net::{TcpStream};
 use std::io::{Read, Write};
 
-extern crate ringbuffer;
-use ringbuffer as rb;
-
 extern crate portaudio;
 use portaudio as pa;
+
+use ringbuf::RingBuffer;
 
 const CHANNELS: i32 = 2;
 const NUM_SECONDS: i32 = 1;
@@ -45,14 +44,17 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     let mut tcp_buffer = [0 as u8; 300];
 
     const AUDIO_BUFFER_LENGTH:usize = 5000;
-    let mut audio_buffer = [0 as f32; AUDIO_BUFFER_LENGTH];
-    let mut index:i32 = 0;
+
+    let audio_buffer = RingBuffer::<f32>::new(AUDIO_BUFFER_LENGTH);
+    let (mut buffer_producer, mut buffer_consumer) = audio_buffer.split();
 
     // Fill audio buffer with floats
-    let result = stream.read(&mut tcp_buffer); // Length is for size f32 //todo loop this
+    let result = stream.read(&mut tcp_buffer); // Length is for size f32
     if result.is_ok() {
         let len = result.unwrap() / 4;
-        audio_buffer[..len].copy_from_slice(from_byte_slice(&mut tcp_buffer));
+        //todo loop this
+        buffer_producer.push_slice(from_byte_slice(&mut tcp_buffer));
+
     } else {
         result.err();
     }
@@ -71,20 +73,8 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // interrupt level on some machines so don't do anything that could mess up the system like
     // dynamic resource allocation or IO.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
-        //todo implement circular buffer
-        if index + frames as i32 > AUDIO_BUFFER_LENGTH as i32 {
-            index -= AUDIO_BUFFER_LENGTH as i32;
-        }
-
-        //test if index is negative
-        if index < 0 {
-            index = 0;
-            assert_eq!(index as usize, 0);
-        }
-
-        // Copy buffer_from_stream to buffer
-        buffer[..frames].copy_from_slice(&audio_buffer[index as usize..index as usize + frames]);
-        index += frames as i32;
+        // Copy buffer_from_stream to audio_buffer
+        buffer_consumer.pop_slice(&mut buffer[..frames]);
 
         pa::Continue
     };
