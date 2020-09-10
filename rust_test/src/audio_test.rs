@@ -2,12 +2,8 @@ use std::f32::consts::PI;
 use std::i16;
 use std::fs::File;
 
-//extern crate hound;
-//extern crate portaudio;
 use hound;
 use portaudio as pa;
-
-use std::io::stdin;
 
 // Define buffer size
 const BUFFER_SIZE: usize = 1024;

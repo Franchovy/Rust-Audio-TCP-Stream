@@ -1,7 +1,5 @@
 use std::net::{TcpStream};
-use std::f64::consts::PI;
 use std::io::{Read, Write};
-use std::str::from_utf8;
 
 extern crate ringbuffer;
 use ringbuffer as rb;
@@ -13,7 +11,6 @@ const CHANNELS: i32 = 2;
 const NUM_SECONDS: i32 = 1;
 const SAMPLE_RATE: f64 = 44100.0;
 const FRAMES_PER_BUFFER: u32 = 64;
-const TABLE_SIZE: usize = 100;
 
 pub(crate) fn run_client() {
     match TcpStream::connect("localhost:3333") {
@@ -22,17 +19,12 @@ pub(crate) fn run_client() {
 
             stream.write(b"stream sin 10s");
 
-            let expected_msg = b"stream";
-
             let mut data = [0; 6];
 
             match stream.read(&mut data) {
-                Ok(size) => {
-                    // Begin audio stream
-                    stream_audio(stream);
-                },
                 Ok(_) => {
-                    println!("Received sizeless msg.");
+                    // Begin audio stream
+                    stream_audio(stream); //todo error
                 },
                 Err(e) => {
                     println!("Failed to receive data: {}", e);
@@ -52,14 +44,13 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // Allocate buffers
     let mut tcp_buffer = [0 as u8; 300];
 
-
     const AUDIO_BUFFER_LENGTH:usize = 5000;
     let mut audio_buffer = [0 as f32; AUDIO_BUFFER_LENGTH];
     let mut index:i32 = 0;
 
     // Fill audio buffer with floats
     let result = stream.read(&mut tcp_buffer); // Length is for size f32 //todo loop this
-    if (result.is_ok()) {
+    if result.is_ok() {
         let len = result.unwrap() / 4;
         audio_buffer[..len].copy_from_slice(from_byte_slice(&mut tcp_buffer));
     } else {

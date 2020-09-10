@@ -4,28 +4,8 @@ use std::io::{Read, Write};
 
 use std::f64::consts::PI;
 
-const CHANNELS: i32 = 2;
-const NUM_SECONDS: i32 = 1;
-const SAMPLE_RATE: f64 = 44100.0;
-const FRAMES_PER_BUFFER: u32 = 64;
 const TABLE_SIZE: usize = 100;
 
-
-fn handle_client(mut stream: TcpStream) {
-    let mut data = [0 as u8; 50]; // using 50 byte buffer
-    while match stream.read(&mut data) {
-        Ok(size) => {
-            //println!("Server read from stream. Size: {} ", size);
-
-            true
-        },
-        Err(_) => {
-            println!("An error occurred, terminating connection with {}", stream.peer_addr().unwrap());
-            stream.shutdown(Shutdown::Both).unwrap();
-            false
-        }
-    } {}
-}
 
 pub(crate) fn run_server() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
@@ -41,14 +21,14 @@ pub(crate) fn run_server() {
                     // Connection succeeded
                     let mut data = [0 as u8; 14]; // read 14 byte header
                     while match stream.read(&mut data) {
-                        Ok(size) => {
+                        Ok(_) => {
                             if data.starts_with(b"stream") && data.ends_with(b"s") {
                                 println!("Correct");
                                 let choice = &data[7..10];
 
                                 let string = std::str::from_utf8(&data[11..13]).unwrap();
                                 // todo handle panic
-                                let mut audio_msg_length:i32 = string
+                                let audio_msg_length:i32 = string
                                     .parse().unwrap();
 
                                 println!("Length: {}.", audio_msg_length);
@@ -56,11 +36,9 @@ pub(crate) fn run_server() {
                                 if choice.eq(b"sin") {
                                     println!("Choose play sine");
 
-                                    stream_sine(&mut stream, audio_msg_length);
+                                    stream_sine(&mut stream, audio_msg_length); //todo error
                                 } else if choice.eq(b"mic") {
                                     println!("Choose play mic");
-
-
                                 } else {
                                     println!("Fail");
                                 }
