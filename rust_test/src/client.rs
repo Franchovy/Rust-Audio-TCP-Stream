@@ -3,6 +3,9 @@ use std::f64::consts::PI;
 use std::io::{Read, Write};
 use std::str::from_utf8;
 
+extern crate ringbuffer;
+use ringbuffer as rb;
+
 extern crate portaudio;
 use portaudio as pa;
 
