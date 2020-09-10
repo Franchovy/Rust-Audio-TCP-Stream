@@ -48,7 +48,11 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
 
     // Allocate buffers
     let mut tcp_buffer = [0 as u8; 300];
-    let mut audio_buffer = [0 as f32; 1000];
+
+
+    const AUDIO_BUFFER_LENGTH:usize = 5000;
+    let mut audio_buffer = [0 as f32; AUDIO_BUFFER_LENGTH];
+    let mut index:i32 = 0;
 
     // Fill audio buffer with floats
     let result = stream.read(&mut tcp_buffer); // Length is for size f32 //todo loop this
@@ -73,8 +77,21 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // interrupt level on some machines so don't do anything that could mess up the system like
     // dynamic resource allocation or IO.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
+        //todo implement circular buffer
+        if index + frames as i32 > AUDIO_BUFFER_LENGTH as i32 {
+            index -= AUDIO_BUFFER_LENGTH as i32;
+        }
+
+        //test if index is negative
+        if index < 0 {
+            index = 0;
+            assert_eq!(index as usize, 0);
+        }
+
         // Copy buffer_from_stream to buffer
-        buffer[..frames].copy_from_slice(&audio_buffer[..frames]);
+        buffer[..frames].copy_from_slice(&audio_buffer[index as usize..index as usize + frames]);
+        index += frames as i32;
+
         pa::Continue
     };
 

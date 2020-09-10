@@ -3,6 +3,7 @@ mod server;
 mod audio_test;
 mod beep;
 mod stream;
+mod audio_buffer;
 
 use std::{thread, time};
 

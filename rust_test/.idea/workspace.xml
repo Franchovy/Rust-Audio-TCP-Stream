@@ -31,6 +31,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="59ef864d-0cd9-4dde-ba6c-244be938e7b9" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/src/audio_buffer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/client.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/client.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
@@ -80,6 +81,11 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -95,7 +101,7 @@
       <updated>1599577643673</updated>
       <workItem from="1599577645095" duration="4817000" />
       <workItem from="1599646466570" duration="15781000" />
-      <workItem from="1599726763644" duration="2936000" />
+      <workItem from="1599726763644" duration="8998000" />
     </task>
     <servers />
   </component>
@@ -122,42 +128,42 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="104" y="22" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1280.720@0.0.1280.720" timestamp="1599577670776" />
-    <state width="1238" height="232" key="GridCell.Tab.0.bottom" timestamp="1599729960710">
+    <state width="1238" height="232" key="GridCell.Tab.0.bottom" timestamp="1599746443196">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1599729960710" />
-    <state width="1238" height="232" key="GridCell.Tab.0.center" timestamp="1599729960710">
+    <state width="1238" height="232" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1599746443196" />
+    <state width="1238" height="232" key="GridCell.Tab.0.center" timestamp="1599746443196">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1599729960710" />
-    <state width="1238" height="232" key="GridCell.Tab.0.left" timestamp="1599729960709">
+    <state width="1238" height="232" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1599746443196" />
+    <state width="1238" height="232" key="GridCell.Tab.0.left" timestamp="1599746443195">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1599729960709" />
-    <state width="1238" height="232" key="GridCell.Tab.0.right" timestamp="1599729960710">
+    <state width="1238" height="232" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1599746443195" />
+    <state width="1238" height="232" key="GridCell.Tab.0.right" timestamp="1599746443196">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1599729960710" />
-    <state width="1238" height="232" key="GridCell.Tab.1.bottom" timestamp="1599729946916">
+    <state width="1238" height="232" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1599746443196" />
+    <state width="1238" height="232" key="GridCell.Tab.1.bottom" timestamp="1599746443125">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.1.bottom/0.0.1280.720@0.0.1280.720" timestamp="1599729946916" />
-    <state width="1238" height="232" key="GridCell.Tab.1.center" timestamp="1599729946915">
+    <state width="1238" height="232" key="GridCell.Tab.1.bottom/0.0.1280.720@0.0.1280.720" timestamp="1599746443125" />
+    <state width="1238" height="232" key="GridCell.Tab.1.center" timestamp="1599746443124">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.1.center/0.0.1280.720@0.0.1280.720" timestamp="1599729946915" />
-    <state width="1238" height="232" key="GridCell.Tab.1.left" timestamp="1599729946915">
+    <state width="1238" height="232" key="GridCell.Tab.1.center/0.0.1280.720@0.0.1280.720" timestamp="1599746443124" />
+    <state width="1238" height="232" key="GridCell.Tab.1.left" timestamp="1599746443124">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.1.left/0.0.1280.720@0.0.1280.720" timestamp="1599729946915" />
-    <state width="1238" height="232" key="GridCell.Tab.1.right" timestamp="1599729946916">
+    <state width="1238" height="232" key="GridCell.Tab.1.left/0.0.1280.720@0.0.1280.720" timestamp="1599746443124" />
+    <state width="1238" height="232" key="GridCell.Tab.1.right" timestamp="1599746443124">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1238" height="232" key="GridCell.Tab.1.right/0.0.1280.720@0.0.1280.720" timestamp="1599729946916" />
-    <state x="438" y="281" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1599730139176">
+    <state width="1238" height="232" key="GridCell.Tab.1.right/0.0.1280.720@0.0.1280.720" timestamp="1599746443124" />
+    <state x="438" y="267" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1599733581811">
       <screen x="0" y="23" width="1280" height="697" />
     </state>
-    <state x="438" y="281" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.23.1280.697@0.23.1280.697" timestamp="1599730139176" />
+    <state x="438" y="267" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.23.1280.697@0.23.1280.697" timestamp="1599733581811" />
     <state x="305" y="165" key="run.anything.popup" timestamp="1599647386314">
       <screen x="0" y="23" width="1280" height="697" />
     </state>
@@ -167,16 +173,5 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="305" y="44" width="670" height="676" key="search.everywhere.popup/0.0.1280.720@0.0.1280.720" timestamp="1599728545638" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/client.rs</url>
-          <line>76</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
