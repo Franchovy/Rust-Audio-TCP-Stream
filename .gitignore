@@ -2,5 +2,6 @@
 rust_test/target/
 
 rust_test/Cargo.lock
-**/.idea/*
+rust_test/.idea/*
+rust_test/.DS_Store
 **/*.rs.bk
