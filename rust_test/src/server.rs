@@ -36,7 +36,7 @@ pub(crate) fn run_server() {
                                 if choice.eq(b"sin") {
                                     println!("Choose play sine");
 
-                                    stream_sine(&mut stream, audio_msg_length); //todo error
+                                    stream_sine(&mut stream, audio_msg_length); //todo error handling
                                 } else if choice.eq(b"mic") {
                                     println!("Choose play mic");
                                 } else {

@@ -1,4 +1,4 @@
-use std::net::{TcpStream};
+use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
 
 extern crate portaudio;
@@ -20,10 +20,11 @@ pub(crate) fn run_client() {
 
             let mut data = [0; 6];
 
+            //todo make this the stream loop!.
             match stream.read(&mut data) {
                 Ok(_) => {
                     // Begin audio stream
-                    stream_audio(stream); //todo error
+                    stream_audio(stream); //todo error handling
                 },
                 Err(e) => {
                     println!("Failed to receive data: {}", e);
@@ -48,16 +49,22 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     let audio_buffer = RingBuffer::<f32>::new(AUDIO_BUFFER_LENGTH);
     let (mut buffer_producer, mut buffer_consumer) = audio_buffer.split();
 
-    // Fill audio buffer with floats
-    let result = stream.read(&mut tcp_buffer); // Length is for size f32
-    if result.is_ok() {
-        let len = result.unwrap() / 4;
-        //todo loop this
-        buffer_producer.push_slice(from_byte_slice(&mut tcp_buffer));
 
-    } else {
-        result.err();
-    }
+    // Run TCP Listener
+    std::thread::spawn(move || {
+        loop {
+            if stream.read(&mut tcp_buffer).is_ok() { //todo check for timeout!
+                // Fill audio buffer with floats
+                println!("Receiving stream...");
+                buffer_producer.push_slice(from_byte_slice(&mut tcp_buffer));
+            } else {
+                // Timeout
+                println!("Finished.");
+                break;
+            }
+        }
+    });
+
 
     println!("Creating audio stream on client side..");
 
