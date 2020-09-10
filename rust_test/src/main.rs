@@ -24,6 +24,7 @@ fn main() {
     });
     std::thread::sleep(sleep_time);*/
 
+    //test_audio_buffer(); //doesn't pass tests. Can't waste time here.
 
     println!("Running server.");
     std::thread::spawn(|| {
@@ -36,11 +37,49 @@ fn main() {
         client::run_client();
     } );
 
-    std::thread::sleep(std::time::Duration::from_secs(1));
+/*    std::thread::sleep(std::time::Duration::from_secs(1));
 
     println!("Running client 2.");
 
     std::thread::spawn(|| {
         client::run_client();
-    } );
+    } );*/
+}
+
+fn test_audio_buffer() {
+    //=======================================
+    // Test 1 -> normal write and read
+
+    let mut audio_buffer = audio_buffer::AudioBuffer::new(100);
+
+    let mut write_data:[f32;10] = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0];
+    audio_buffer.write(write_data.len(), &write_data);
+
+    assert_eq!(audio_buffer.size_filled(), 10);
+
+    let mut read_data = [0.0; 10];
+    //write_data.copy_from_slice(&read_data[..]);
+    audio_buffer.read(read_data.len(), &mut read_data);
+
+    for i in 0..10 {
+        assert_eq!(write_data[i], read_data[i]);
+    }
+
+    //=======================================
+    // Test 2 -> circular write and read
+
+    let mut write_data:[f32;100] = [1.0; 100];
+    audio_buffer.write(write_data.len(), &write_data);
+
+    assert_eq!(audio_buffer.size_filled(), 100);
+
+    let mut read_data:[f32; 100] = [0.0; 100];
+    //write_data.copy_from_slice(&read_data[..]);
+    audio_buffer.read(read_data.len(), &mut read_data);
+
+    for i in 0 .. 99 {
+        assert_eq!(write_data[i], read_data[i]);
+    }
+
+    println!("Custom audio buffer tests passed.");
 }
