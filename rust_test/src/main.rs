@@ -8,7 +8,7 @@ use std::{thread, time};
 
 fn main() {
     println!("Beep!");
-    beep::beep();
+    //beep::beep();
 
     //println!("Beep again!");
     //audio_test::audio_test();

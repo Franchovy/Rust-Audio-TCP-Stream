@@ -25,13 +25,8 @@ pub(crate) fn run_client() {
 
             match stream.read(&mut data) {
                 Ok(size) => {
-                    if size == 6 && &data == expected_msg
-                    {
-                        // Begin audio stream
-                        stream_audio(stream);
-                    } else {
-                        println!("Received invalid msg.");
-                    }
+                    // Begin audio stream
+                    stream_audio(stream);
                 },
                 Ok(_) => {
                     println!("Received sizeless msg.");
@@ -51,11 +46,22 @@ pub(crate) fn run_client() {
 // fn on connect
 fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
 
-    let tcp_buffer = &mut [0 as u8; 300];
-    stream.read(tcp_buffer);
+    // Allocate buffers
+    let mut tcp_buffer = [0 as u8; 300];
+    let mut audio_buffer = [0 as f32; 1000];
 
-    println!("Streaming!");
+    // Fill audio buffer with floats
+    let result = stream.read(&mut tcp_buffer); // Length is for size f32 //todo loop this
+    if (result.is_ok()) {
+        let len = result.unwrap() / 4;
+        audio_buffer[..len].copy_from_slice(from_byte_slice(&mut tcp_buffer));
+    } else {
+        result.err();
+    }
 
+    println!("Creating audio stream on client side..");
+
+    // Create Portaudio object
     let pa = pa::PortAudio::new()?;
 
     let mut settings =
@@ -67,9 +73,8 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // interrupt level on some machines so don't do anything that could mess up the system like
     // dynamic resource allocation or IO.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
-        for i in 0..frames {
-
-        }
+        // Copy buffer_from_stream to buffer
+        buffer[..frames].copy_from_slice(&audio_buffer[..frames]);
         pa::Continue
     };
 
@@ -91,10 +96,8 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
 
 
 // fn from byte slice to float
-
-//todo move to server
-fn to_byte_slice<'a>(floats: &'a [f32]) -> &'a [u8] {
+fn from_byte_slice(bytes: &[u8]) -> &[f32] {
     unsafe {
-        std::slice::from_raw_parts(floats.as_ptr() as *const _, floats.len() * 4)
+        std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
     }
 }
