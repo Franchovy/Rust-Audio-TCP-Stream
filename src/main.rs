@@ -9,8 +9,9 @@ use std::thread;
 
 const BEEP_TEST:bool = false;
 const STREAM_TEST:bool = false;
-const CLIENT_SERVER_TEST:bool = true;
-const CLIENT2_TEST:bool = false;
+const CLIENT_SERVER_TEST_BEEP:bool = false;
+const CLIENT_SERVER_TEST_MIC:bool = true;
+const CLIENT2_TEST:bool = true;
 
 
 #[allow(unreachable_code)]
@@ -32,7 +33,12 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
-    if CLIENT_SERVER_TEST {
+
+    if CLIENT_SERVER_TEST_BEEP {
+        println!("Running beep through Tcp protocol: ");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+
         println!("Running server.");
 
         std::thread::spawn(|| {
@@ -44,12 +50,35 @@ fn main() {
         println!("Running client 1.");
 
         std::thread::spawn(|| {
-            client::run_client();
+            client::run_client(false);
         });
 
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
+
+    if CLIENT_SERVER_TEST_MIC {
+        println!("Now running audio stream through TCP.");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        println!("(WATCH OUT FOR FEEDBACK!)");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        println!("Running server.");
+
+        std::thread::spawn(|| {
+            server::run_server();
+        });
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        println!("Running client 1.");
+
+        std::thread::spawn(|| {
+            client::run_client(true);
+        });
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 
     //infinite loop.
     loop {
@@ -60,7 +89,7 @@ fn main() {
         println!("Running client 2.");
 
         std::thread::spawn(|| {
-            client::run_client();
+            client::run_client(false);
         });
     }
 }

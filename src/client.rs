@@ -21,13 +21,14 @@ const OUTPUT_FRAMES_PER_BUFFER: u32 = 256;
 const NUM_SECONDS:i32 = 10;
 
 
-pub(crate) fn run_client() {
+pub(crate) fn run_client(mic_mode:bool) {
     let result = TcpStream::connect("localhost:3333");
     if result.is_ok() {
         let mut tcp_stream = result.unwrap();
         println!("Successfully connected to server in port 3333.");
 
-        let msg = format!("stream {} {:02}s", "sin", NUM_SECONDS);
+        let mode = if mic_mode { "mic" } else { "sin" };
+        let msg = format!("stream {} {:02}s", mode, NUM_SECONDS);
 
         println!("Sending message: {}", msg);
         tcp_stream.write_all(msg.as_bytes());
