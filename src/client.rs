@@ -27,7 +27,7 @@ pub(crate) fn run_client() {
         let mut tcp_stream = result.unwrap();
         println!("Successfully connected to server in port 3333.");
 
-        let msg = format!("stream {} {:02}s", "mic", NUM_SECONDS);
+        let msg = format!("stream {} {:02}s", "sin", NUM_SECONDS);
 
         println!("Sending message: {}", msg);
         tcp_stream.write_all(msg.as_bytes());
