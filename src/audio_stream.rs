@@ -173,13 +173,13 @@ impl AudioStream {
 }
 
 ///         ! ! ! ! ! ! ! ! ! ! ! !  WATCH OUT!
-/// more like audio_SCREAM_test... watch your ears at the dirty audio
+/// more like audio_SCREAM_test... watch your ears at the start and end.
 pub fn audio_stream_test(duration:f64) -> Result<(), pa::error::Error> {
     //===============================================
     // using test
     let mut stream_test = AudioStream::new(true, true)?;
 
-    stream_test.set_duration(duration);
+    stream_test.set_duration(duration); //doesn't work, see above.
     stream_test.stream();
 
     println!("test");
