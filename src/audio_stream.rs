@@ -1,6 +1,6 @@
 //! A demonstration of constructing and using a non-blocking stream.
 //!
-//! Audio from the default input device is passed directly to the default output device in a duplex
+//! Audio from the default input device is passed directly to the default output device in the
 //! stream, so beware of feedback!
 
 extern crate portaudio;
