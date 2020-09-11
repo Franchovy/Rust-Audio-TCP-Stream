@@ -89,6 +89,10 @@ pub(crate) fn run_server() {
     drop(listener);
 }
 
+fn stream_to_tcp(stream: &mut TcpStream, mut duration:f32) {
+
+}
+
 fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::error::Error>> {
     // Launch PortAudio
     let pa = pa::PortAudio::new()?;

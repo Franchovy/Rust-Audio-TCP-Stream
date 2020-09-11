@@ -26,7 +26,7 @@ fn main() {
         println!("Testing stream.");
 
         std::thread::spawn(|| {
-            audio_stream::audio_stream(5.0);
+            audio_stream::audio_stream_test(5.0);
         });
 
         std::thread::sleep(std::time::Duration::from_millis(100));

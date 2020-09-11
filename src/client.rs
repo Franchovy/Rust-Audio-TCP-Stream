@@ -38,6 +38,10 @@ pub(crate) fn run_client() {
     println!("Terminated.");
 }
 
+fn stream_from_tcp (mut stream: TcpStream) {
+
+}
+
 // fn on connect
 fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
 
