@@ -1,22 +1,21 @@
 use std::thread;
 use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
+use std::f64::consts::PI;
 
 extern crate portaudio;
 use portaudio as pa;
 
-use ringbuf::RingBuffer;
+use ringbuf;
 const RINGBUFFER_SIZE:usize = 5000;
 
-// Input Audio Parameters
 const SAMPLE_RATE: f64 = 44_100.0;
 const FRAMES: u32 = 256;
-const CHANNELS: i32 = 2;
+const CHANNELS: i32 = 1;
 const INTERLEAVED: bool = true;
+const INPUT_FRAMES_PER_BUFFER: u32 = 256;
 
 // Sine Wave Parameters
-use std::f64::consts::PI;
-
 const TABLE_SIZE: usize = 100;
 
 
@@ -41,7 +40,7 @@ pub(crate) fn run_server() {
 
                                 let string = std::str::from_utf8(&data[11..13]).unwrap();
                                 // todo handle panic
-                                let audio_msg_length:f32 = string
+                                let audio_msg_length:f64 = string
                                     .parse().unwrap();
 
                                 println!("Length: {}.", audio_msg_length);
@@ -49,7 +48,7 @@ pub(crate) fn run_server() {
                                 if choice.eq(b"sin") {
                                     println!("Choose play sine");
 
-                                    stream_sine(&mut stream, audio_msg_length);
+                                    stream_sine(&mut stream, audio_msg_length as f32);
                                 } else if choice.eq(b"mic") {
                                     println!("Choose play mic");
 
@@ -89,11 +88,7 @@ pub(crate) fn run_server() {
     drop(listener);
 }
 
-fn stream_to_tcp(stream: &mut TcpStream, mut duration:f32) {
-
-}
-
-fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::error::Error>> {
+fn stream_mic(tcp_stream: &mut TcpStream, mut duration: f64) -> Result<(), Box<dyn std::error::Error>> {
     // Launch PortAudio
     let pa = pa::PortAudio::new()?;
 
@@ -102,43 +97,40 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
 
     // Construct the input stream parameters.
     let latency = input_info.default_low_input_latency;
-    let input_params = pa::StreamParameters::<f32>::new(def_input, CHANNELS, INTERLEAVED, latency);
+    let input_params = pa::StreamParameters::<f32>::new(
+        def_input, CHANNELS, INTERLEAVED, latency);
 
     pa.is_input_format_supported(input_params, SAMPLE_RATE)?;
-    let settings = pa::InputStreamSettings::new(input_params, SAMPLE_RATE, FRAMES);
+    let mut input_settings = pa::InputStreamSettings::new(
+        input_params, SAMPLE_RATE, INPUT_FRAMES_PER_BUFFER);
 
-    // Once the countdown reaches 0 we'll close the stream.
-    let mut count_down = duration as f64;
-    let mut previous_time = None;
+    // Create audio -> tcp ringbuffer
+    let (mut rb_producer, mut rb_consumer)
+        = ringbuf::RingBuffer::<f32>::new(RINGBUFFER_SIZE).split();
 
-    // Message passing channel
-    let (sender, receiver) = ::std::sync::mpsc::channel();
+    // Create message channel
+    let (msg_sender, msg_receiver) = ::std::sync::mpsc::channel();
 
-    // Create Circular buffer to stream audio through to TCP
-    let audio_buffer = ringbuf::RingBuffer::<f32>::new(RINGBUFFER_SIZE);
-    let (mut buffer_producer, mut buffer_consumer) = audio_buffer.split();
+    // Define callback -> send input stream into ringbuffer
+    let input_stream_callback = move |pa::InputStreamCallbackArgs {
+                                          buffer,
+                                          frames,
+                                          time,
+                                          ..
+                                      }| {
+        duration -= frames as f64 / SAMPLE_RATE;
+        assert_eq!(buffer.len(), frames);
+        msg_sender.send(duration).ok();
 
-    // Define the Audio Callback
-    let callback = move |pa::InputStreamCallbackArgs {
-                             buffer,
-                             frames,
-                             time,
-                             ..
-                         }| {
-        let current_time = time.current;
-        let prev_time = previous_time.unwrap_or(current_time);
-        let dt = current_time - prev_time;
-        count_down -= dt;
-        previous_time = Some(current_time);
-
-        assert!(frames == FRAMES as usize);
-        sender.send(count_down).ok();
+        while rb_producer.is_full() {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
 
         // Push audio to the RingBuffer
-        buffer_producer.push_slice(buffer);
+        rb_producer.push_slice(buffer);
 
-        if count_down > 0.0 {
-            println!("Receiving mic input...");
+        if duration > 0.0 {
+            println!("Input: {} frames", rb_producer.len());
             pa::Continue
         } else {
             println!("Finished mic input.");
@@ -146,30 +138,31 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
         }
     };
 
-    // Construct the audio stream
-    let mut audio_stream = pa.open_non_blocking_stream(settings, callback)?;
+    // Construct input audio stream
+    let mut input_stream
+        = pa.open_non_blocking_stream(input_settings, input_stream_callback)?;
 
     // Set up the Tcp Stream buffer
     const BUFFER_LENGTH:usize = 1000;
     let mut data:[f32;BUFFER_LENGTH / 4] = [0.0; BUFFER_LENGTH / 4];
 
     // Start the audio input stream
-    audio_stream.start()?;
+    input_stream.start()?;
 
     // Loop while the non-blocking stream is active.
-    while let true = audio_stream.is_active()? {
+    while let true = input_stream.is_active()? {
         // Transfer data from the RingBuffer to the TCP Stream !
-        buffer_consumer.pop_slice(&mut data);
-        stream.write(f32_to_u8(&data))?;
+        rb_consumer.pop_slice(&mut data);
+        tcp_stream.write(f32_to_u8(&data))?;
 
         // Pass countdown message to the msg channel.
-        while let Ok(count_down) = receiver.try_recv() {
+        while let Ok(count_down) = msg_receiver.try_recv() {
             println!("count_down: {:?}", count_down);
         }
     }
 
     // Stop the stream.
-    audio_stream.stop()?;
+    input_stream.stop()?;
 
     Ok(())
 }
@@ -232,12 +225,11 @@ fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs
     size_leftover_in_secs
 }
 
-fn f32_to_u8(floats: &[f32]) -> &[u8] {
+pub fn f32_to_u8(floats: &[f32]) -> &[u8] {
     unsafe {
         let bytes = floats.align_to::<u8>();
         assert_eq!(bytes.0.len() + bytes.2.len(), 0);
         assert_eq!(bytes.1.len(), floats.len() * 4);
         bytes.1
-        //std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 4)
     }
 }

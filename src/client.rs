@@ -12,7 +12,6 @@ const SAMPLE_RATE: f64 = 44_100.0;
 const FRAMES: u32 = 256;
 const CHANNELS: i32 = 1;
 const INTERLEAVED: bool = true;
-const INPUT_FRAMES_PER_BUFFER: u32 = 256;
 const OUTPUT_FRAMES_PER_BUFFER: u32 = 256;
 
 //===========================================
@@ -66,7 +65,7 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
         while !time_out {
             if tcp_stream.read(&mut tcp_buffer).unwrap() > 0 {
                 // Fill audio buffer with floats
-                rb_producer.push_slice(from_byte_slice(&mut tcp_buffer));
+                rb_producer.push_slice(u8_to_f32(&mut tcp_buffer));
             } else {
                 // Timeout check - 50ms waiting time
                 for mut t in 50..0
@@ -145,7 +144,7 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
 
 
 // fn from byte slice to float
-fn from_byte_slice(bytes: &[u8]) -> &[f32] {
+pub fn u8_to_f32(bytes: &[u8]) -> &[f32] {
     unsafe {
         let floats = bytes.align_to::<f32>();
         assert_eq!(floats.0.len() + floats.2.len(), 0);
