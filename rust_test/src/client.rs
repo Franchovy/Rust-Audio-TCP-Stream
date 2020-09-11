@@ -7,7 +7,7 @@ use portaudio as pa;
 use ringbuf::RingBuffer;
 
 const CHANNELS: i32 = 2;
-const NUM_SECONDS: i32 = 1;
+const NUM_SECONDS: i32 = 5;
 const SAMPLE_RATE: f64 = 44100.0;
 const FRAMES_PER_BUFFER: u32 = 64;
 
@@ -16,7 +16,7 @@ pub(crate) fn run_client() {
         Ok(mut stream) => {
             println!("Successfully connected to server in port 3333.");
 
-            stream.write(b"stream sin 10s");
+            stream.write(b"stream sin 03s");
 
             let mut data = [0; 6];
 
@@ -44,21 +44,21 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // Allocate buffers
     let mut tcp_buffer = [0 as u8; 300];
 
-    const AUDIO_BUFFER_LENGTH:usize = 5000;
+    const AUDIO_BUFFER_LENGTH:usize = 50000;
 
     let audio_buffer = RingBuffer::<f32>::new(AUDIO_BUFFER_LENGTH);
     let (mut buffer_producer, mut buffer_consumer) = audio_buffer.split();
 
 
     // Run TCP Listener
-    std::thread::spawn(move || {
+    let stream_read_to_audio = std::thread::spawn(move || {
         loop {
-            if stream.read(&mut tcp_buffer).is_ok() { //todo check for timeout!
+            if stream.read(&mut tcp_buffer).unwrap() > 0 { //todo check for timeout!
                 // Fill audio buffer with floats
                 println!("Receiving stream...");
                 buffer_producer.push_slice(from_byte_slice(&mut tcp_buffer));
             } else {
-                // Timeout
+                // Timeout //todo actual timeout check + sleep
                 println!("Finished.");
                 break;
             }
@@ -81,9 +81,16 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // dynamic resource allocation or IO.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         // Copy buffer_from_stream to audio_buffer
-        buffer_consumer.pop_slice(&mut buffer[..frames]);
+        println!("Playing stream...");
 
-        pa::Continue
+        let len = buffer_consumer.pop_slice(&mut buffer[..frames]);
+
+        if len > 0 {
+            pa::Continue
+        } else {
+            println!("Done playing."); //todo timeout check
+            pa::Complete
+        }
     };
 
     let mut stream = pa.open_non_blocking_stream(settings, callback)?;
@@ -93,7 +100,7 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     println!("Play for {} seconds.", NUM_SECONDS);
     pa.sleep(NUM_SECONDS * 1_000);
 
-    stream.stop()?;
+    stream.stop()?; //todo make this relative to the TCP stream.
     stream.close()?;
 
     // start pa-stream

@@ -28,7 +28,7 @@ pub(crate) fn run_server() {
 
                                 let string = std::str::from_utf8(&data[11..13]).unwrap();
                                 // todo handle panic
-                                let audio_msg_length:i32 = string
+                                let audio_msg_length:f32 = string
                                     .parse().unwrap();
 
                                 println!("Length: {}.", audio_msg_length);
@@ -74,7 +74,7 @@ pub(crate) fn run_server() {
     drop(listener);
 }
 
-fn stream_sine(stream: &mut TcpStream, mut duration: i32) -> Result<(), ()> {
+fn stream_sine(stream: &mut TcpStream, mut duration: f32) -> Result<(), ()> {
 
     // Create sin table
     let mut sine = [0.0; TABLE_SIZE];
@@ -87,21 +87,22 @@ fn stream_sine(stream: &mut TcpStream, mut duration: i32) -> Result<(), ()> {
     // Write to stream
     let data = &mut [0 as u8; BUFFER_LENGTH];
 
-    let mut cont:bool = true;
-    while cont {
+    loop {
         let size_left = fill_buffer_with_table_loop(&mut data[..], &sine, duration);
         duration = size_left;
+        println!("duration left: {}", duration);
 
         match stream.write(&*data) {
             Ok(_) => {
                 println!("Write ok.");
-                if duration <= 0 {
-                    cont = false;
+                if duration <= 0.0 {
+                    //todo send close msg
+                    break;
                 }
             },
             Err(e) => {
                 println!("Error: {}", e);
-                cont = false;
+                break;
             }
         }
     }
@@ -125,21 +126,21 @@ fn stream_sine(stream: &mut TcpStream, mut duration: i32) -> Result<(), ()> {
 /**
 *   Returns size leftover.
 **/
-fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs: i32) -> i32 {
+fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs: f32) -> f32 {
     let table_u8 = f32_to_u8(table);
     let mut index = 0;
 
     const SAMPLE_RATE:i32 = 44100; //Assuming 44.1K sample rate
-    let size_leftover_in_secs = size_in_secs - (buffer.len() as i32 * SAMPLE_RATE / 4);
-    let table_len_in_secs = table.len() as i32 / SAMPLE_RATE;
+    let size_leftover_in_secs = size_in_secs - (buffer.len() as f32 / SAMPLE_RATE as f32 / 4.0);
+    let table_len_in_secs = table.len() as f32 / SAMPLE_RATE as f32;
 
-    while size_in_secs > table_len_in_secs as i32
+    while size_in_secs > table_len_in_secs
         && index + table_u8.len() < buffer.len()
     {
         // Copy table
         buffer[index.. index + table_u8.len()].copy_from_slice(table_u8);
 
-        size_in_secs -= table_len_in_secs as i32;
+        size_in_secs -= table_len_in_secs;
         index += table.len();
     }
     if size_in_secs as i32 > 0 {

@@ -33,7 +33,13 @@ fn main() {
 
     println!("Running client 1.");
 
-    client::run_client();
+    std::thread::spawn(|| {
+        client::run_client();
+    });
+
+    loop {
+        thread::sleep(std::time::Duration::from_millis(10));
+    }
 
     /*std::thread::spawn(|| {
         client::run_client();
