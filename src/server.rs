@@ -18,72 +18,68 @@ const INPUT_FRAMES_PER_BUFFER: u32 = 256;
 // Sine Wave Parameters
 const TABLE_SIZE: usize = 100;
 
-
 pub(crate) fn run_server() {
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
     println!("Server listening on port 3333");
 
     for result in listener.incoming() {
-        match result {
-            Ok(mut stream) => {
-                println!("New connection: {}", stream.peer_addr().unwrap());
-                thread::spawn(move|| {
+        if result.is_err() {
+            break;
+        }
+        // Connection succeeded
+        let mut stream = result.unwrap();
+        println!("New connection: {}", stream.peer_addr().unwrap());
 
-                    // Connection succeeded
-                    let mut data = [0 as u8; 14]; // read 14 byte header
-                    while match stream.read(&mut data) {
-                        Ok(_) => {
-                            if data.starts_with(b"stream") && data.ends_with(b"s") {
-                                println!("Correct");
-                                let choice = &data[7..10];
+        //=========================================
+        // Series of checks to verify protocol
 
-                                let string = std::str::from_utf8(&data[11..13]).unwrap();
-                                // todo handle panic
-                                let audio_msg_length:f64 = string
-                                    .parse().unwrap();
+        let mut data = [0 as u8; 14]; // read 14 byte header
+        if stream.read_exact(&mut data).is_err() {
+            stream.shutdown(Shutdown::Both).unwrap();
+            break;
+        }
 
-                                println!("Length: {}.", audio_msg_length);
+        // Check start and end of header
+        if !data.starts_with(b"stream") || !data.ends_with(b"s") {
+            stream.shutdown(Shutdown::Both).unwrap();
+            break;
+        }
 
-                                if choice.eq(b"sin") {
-                                    println!("Choose play sine");
+        // Check "choice" between mic and sine audio input
+        let choice = &data[7..10];
+        let str_result = std::str::from_utf8(&data[11..13]);
+        if str_result.is_err() {
+            println!("Invalid message.");
+            stream.shutdown(Shutdown::Both).unwrap();
+            break;
+        }
+        let string = str_result.unwrap();
 
-                                    stream_sine(&mut stream, audio_msg_length as f32);
-                                } else if choice.eq(b"mic") {
-                                    println!("Choose play mic");
+        let str_parse_result = string.parse();
+        if str_parse_result.is_err() {
+            println!("Invalid time");
+            stream.shutdown(Shutdown::Both).unwrap();
+            break;
+        }
 
-                                    stream_mic(&mut stream, audio_msg_length);
-                                } else {
-                                    println!("Fail");
-                                }
+        let audio_msg_length: f64 = str_parse_result.unwrap();
 
-                                false
-                            } else {
-                                println!("Incorrect");
-                                false
-                            }
+        println!("Length: {}.", audio_msg_length);
 
-                        },
-                        Err(_) => {
-                            println!("An error occurred, terminating connection with {}", stream.peer_addr().unwrap());
-                            stream.shutdown(Shutdown::Both).unwrap();
-                            false
-                        }
-                    } {}
+        if choice.eq(b"sin") {
 
-                    //handle_client(stream);
-                    //stream_sine(stream);
-                });
-            }
-            Err(e) => {
-                println!("Error: {}", e);
-                // Connection Failed
-            }
+            println!("Choose play sine");
+            stream_sine(&mut stream, audio_msg_length as f32);
+        } else if choice.eq(b"mic") {
+
+            println!("Choose play mic");
+            stream_mic(&mut stream, audio_msg_length);
+        } else {
+            stream.shutdown(Shutdown::Both).unwrap();
+            break;
         }
     }
-
-    std::thread::sleep(std::time::Duration::from_secs(100));
-
     // close the socket listener
     drop(listener);
 }
@@ -153,7 +149,7 @@ fn stream_mic(tcp_stream: &mut TcpStream, mut duration: f64) -> Result<(), Box<d
     while let true = input_stream.is_active()? {
         // Transfer data from the RingBuffer to the TCP Stream !
         rb_consumer.pop_slice(&mut data);
-        tcp_stream.write(f32_to_u8(&data))?;
+        tcp_stream.write_all(f32_to_u8(&data))?;
 
         // Pass countdown message to the msg channel.
         while let Ok(count_down) = msg_receiver.try_recv() {
@@ -184,7 +180,7 @@ fn stream_sine(stream: &mut TcpStream, mut duration: f32) -> std::io::Result<()>
         duration = size_left;
         println!("duration left: {}", duration);
 
-        stream.write(&data[..])?;
+        stream.write_all(&data[..])?;
 
         if duration < 0.0 {
             // todo close message
@@ -196,9 +192,9 @@ fn stream_sine(stream: &mut TcpStream, mut duration: f32) -> std::io::Result<()>
 }
 
 
-/**
-*   Returns size leftover.
-**/
+/// Use this to fill *buffer* with looping *table*.
+/// Additionally, it subtracts the appropriate time from *size_in_secs* relative
+/// to the sample rate.
 fn fill_buffer_with_table_loop(buffer: &mut[u8], table: &[f32], mut size_in_secs: f32) -> f32 {
     let table_u8 = f32_to_u8(table);
     let mut index = 0;

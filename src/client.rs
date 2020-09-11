@@ -6,6 +6,8 @@ extern crate portaudio;
 use portaudio as pa;
 
 use ringbuf;
+use crate::server::f32_to_u8;
+
 const RINGBUFFER_SIZE:usize = 5000;
 
 const SAMPLE_RATE: f64 = 44_100.0;
@@ -18,29 +20,28 @@ const OUTPUT_FRAMES_PER_BUFFER: u32 = 256;
 // PARAMETERS
 const NUM_SECONDS:i32 = 10;
 
+
 pub(crate) fn run_client() {
     let result = TcpStream::connect("localhost:3333");
     if result.is_ok() {
-        let mut stream = result.unwrap();
+        let mut tcp_stream = result.unwrap();
         println!("Successfully connected to server in port 3333.");
-
 
         let msg = format!("stream {} {:02}s", "mic", NUM_SECONDS);
 
         println!("Sending message: {}", msg);
-        stream.write(msg.as_bytes());
+        tcp_stream.write_all(msg.as_bytes());
 
-        let mut data = [0; 6];
-
-        match stream.read(&mut data) {
-            Ok(_) => {
-                // Begin audio stream
-                stream_audio(stream);
-            },
-            Err(e) => {
-                println!("Failed to receive data: {}", e);
+        let mut dummy = [0;10];
+        loop {
+            // Wait to catch signal.
+            if tcp_stream.peek(&mut dummy).is_ok() {
+                break;
             }
         }
+        // Begin audio stream
+        stream_audio(tcp_stream);
+
     } else {
         println!("Error connection to server!");
     }
@@ -63,7 +64,7 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
     std::thread::spawn(move || {
         let mut time_out = false;
         while !time_out {
-            if tcp_stream.read(&mut tcp_buffer).unwrap() > 0 {
+            if tcp_stream.read_exact(&mut tcp_buffer).is_ok() {
                 // Fill audio buffer with floats
                 rb_producer.push_slice(u8_to_f32(&mut tcp_buffer));
             } else {

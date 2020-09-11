@@ -9,7 +9,7 @@ use std::thread;
 
 const BEEP_TEST:bool = false;
 const STREAM_TEST:bool = false;
-const CLIENT_SERVER_TEST:bool = false;
+const CLIENT_SERVER_TEST:bool = true;
 const CLIENT2_TEST:bool = false;
 
 
