@@ -55,11 +55,11 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
         loop {
             if stream.read(&mut tcp_buffer).unwrap() > 0 { //todo check for timeout!
                 // Fill audio buffer with floats
-                println!("Receiving stream...");
+                //println!("Receiving stream...");
                 buffer_producer.push_slice(from_byte_slice(&mut tcp_buffer));
             } else {
                 // Timeout //todo actual timeout check + sleep
-                println!("Finished.");
+                println!("Finished receiving TCP stream.");
                 break;
             }
         }
@@ -81,7 +81,7 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
     // dynamic resource allocation or IO.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
         // Copy buffer_from_stream to audio_buffer
-        println!("Playing stream...");
+        //println!("Playing stream...");
 
         let len = buffer_consumer.pop_slice(&mut buffer[..frames]);
 
@@ -113,6 +113,10 @@ fn stream_audio (mut stream: TcpStream) -> Result<(), pa::Error> {
 // fn from byte slice to float
 fn from_byte_slice(bytes: &[u8]) -> &[f32] {
     unsafe {
-        std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+        let floats = bytes.align_to::<f32>();
+        assert_eq!(floats.0.len() + floats.2.len(), 0);
+        assert_eq!(floats.1.len() * 4, bytes.len());
+        floats.1
+        //std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
     }
 }

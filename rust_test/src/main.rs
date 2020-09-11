@@ -7,51 +7,60 @@ mod audio_buffer;
 
 use std::thread;
 
+const BEEP_TEST:bool = false;
+const STREAM_TEST:bool = false;
+const CLIENT_SERVER_TEST:bool = true;
+const CLIENT2_TEST:bool = false;
+
 fn main() {
-    println!("Beep!");
-    beep::beep();
 
-    //println!("Beep again!");
-    //audio_test::audio_test();
-
-    //let sleep_time = time::Duration::from_millis(10000);
-
-
-    /*println!("Testing stream.");
-
-    std::thread::spawn(|| {
-        stream::main();
-    });
-    std::thread::sleep(sleep_time);*/
-
-    //test_audio_buffer(); //doesn't pass tests.
-
-    println!("Running server.");
-    std::thread::spawn(|| {
-        server::run_server();
-    } );
-
-    println!("Running client 1.");
-
-    std::thread::spawn(|| {
-        client::run_client();
-    });
-
-    loop {
-        thread::sleep(std::time::Duration::from_millis(10));
+    if BEEP_TEST {
+        println!("Beep!");
+        beep::beep();
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
-    /*std::thread::spawn(|| {
-        client::run_client();
-    } );*/
+    if STREAM_TEST {
+        println!("Testing stream.");
 
-/*    std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::spawn(|| {
+            stream::main();
+        });
 
-    println!("Running client 2.");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 
-    std::thread::spawn(|| {
-        client::run_client();
-    } );*/
+    if CLIENT_SERVER_TEST {
+        println!("Running server.");
+
+        std::thread::spawn(|| {
+            server::run_server();
+        });
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        println!("Running client 1.");
+
+        std::thread::spawn(|| {
+            client::run_client();
+        });
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
+
+    //infinite loop.
+    loop {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
+    if CLIENT2_TEST {
+        println!("Running client 2.");
+
+        std::thread::spawn(|| {
+            client::run_client();
+        });
+    }
 }
 
 fn test_audio_buffer() {
