@@ -2,16 +2,18 @@ mod client;
 mod server;
 mod audio_test;
 mod beep;
-mod stream;
+mod audio_stream;
 mod audio_buffer;
 
 use std::thread;
 
 const BEEP_TEST:bool = false;
-const STREAM_TEST:bool = false;
-const CLIENT_SERVER_TEST:bool = true;
+const STREAM_TEST:bool = true;
+const CLIENT_SERVER_TEST:bool = false;
 const CLIENT2_TEST:bool = false;
 
+
+#[allow(unreachable_code)]
 fn main() {
 
     if BEEP_TEST {
@@ -24,7 +26,7 @@ fn main() {
         println!("Testing stream.");
 
         std::thread::spawn(|| {
-            stream::main();
+            audio_stream::audio_stream(5.0);
         });
 
         std::thread::sleep(std::time::Duration::from_millis(100));

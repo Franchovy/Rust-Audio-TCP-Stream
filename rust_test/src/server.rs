@@ -93,8 +93,6 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
     // Launch PortAudio
     let pa = pa::PortAudio::new()?;
 
-    let default_host = pa.default_host_api()?;
-
     let def_input = pa.default_input_device()?;
     let input_info = pa.device_info(def_input)?;
 
@@ -102,27 +100,21 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
     let latency = input_info.default_low_input_latency;
     let input_params = pa::StreamParameters::<f32>::new(def_input, CHANNELS, INTERLEAVED, latency);
 
-    // Check that the stream format is supported.
     pa.is_input_format_supported(input_params, SAMPLE_RATE)?;
-
-    // Construct the settings with which we'll open our duplex stream.
     let settings = pa::InputStreamSettings::new(input_params, SAMPLE_RATE, FRAMES);
 
     // Once the countdown reaches 0 we'll close the stream.
     let mut count_down = duration as f64;
+    let mut previous_time = None;
 
-    // Keep track of the last `current_time` so we can calculate the delta time.
-    let mut maybe_last_time = None;
-
-    // We'll use this channel to send the count_down to the main thread for fun.
+    // Message passing channel
     let (sender, receiver) = ::std::sync::mpsc::channel();
 
-    //todo
-    // Create a circular buffer to fill with audio
+    // Create Circular buffer to stream audio through to TCP
     let audio_buffer = ringbuf::RingBuffer::<f32>::new(RINGBUFFER_SIZE);
     let (mut buffer_producer, mut buffer_consumer) = audio_buffer.split();
 
-    // A callback to pass to the non-blocking stream.
+    // Define the Audio Callback
     let callback = move |pa::InputStreamCallbackArgs {
                              buffer,
                              frames,
@@ -130,18 +122,15 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
                              ..
                          }| {
         let current_time = time.current;
-        let prev_time = maybe_last_time.unwrap_or(current_time);
+        let prev_time = previous_time.unwrap_or(current_time);
         let dt = current_time - prev_time;
         count_down -= dt;
-        maybe_last_time = Some(current_time);
+        previous_time = Some(current_time);
 
         assert!(frames == FRAMES as usize);
         sender.send(count_down).ok();
 
-        // Pass the input straight to the output - BEWARE OF FEEDBACK!
-        /*for (output_sample, input_sample) in out_buffer.iter_mut().zip(in_buffer.iter()) {
-            *output_sample = *input_sample;
-        }*/
+        // Push audio to the RingBuffer
         buffer_producer.push_slice(buffer);
 
         if count_down > 0.0 {
@@ -153,7 +142,7 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
         }
     };
 
-    // Construct a stream with input and output sample types of f32.
+    // Construct the audio stream
     let mut audio_stream = pa.open_non_blocking_stream(settings, callback)?;
 
     // Set up the Tcp Stream buffer
@@ -165,15 +154,17 @@ fn stream_mic(stream: &mut TcpStream, mut duration: f32) -> Result<(), Box<std::
 
     // Loop while the non-blocking stream is active.
     while let true = audio_stream.is_active()? {
-        // Do some stuff!
+        // Transfer data from the RingBuffer to the TCP Stream !
         buffer_consumer.pop_slice(&mut data);
         stream.write(f32_to_u8(&data))?;
 
+        // Pass countdown message to the msg channel.
         while let Ok(count_down) = receiver.try_recv() {
             println!("count_down: {:?}", count_down);
         }
     }
 
+    // Stop the stream.
     audio_stream.stop()?;
 
     Ok(())
