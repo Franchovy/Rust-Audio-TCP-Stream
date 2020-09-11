@@ -1,7 +1,7 @@
-/rust_test/debug/
-rust_test/target/
+/debug/
+/target/
 
-rust_test/Cargo.lock
-rust_test/.idea/*
-rust_test/.DS_Store
+Cargo.lock
+.idea/*
+.DS_Store
 **/*.rs.bk
