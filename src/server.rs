@@ -7,6 +7,8 @@ extern crate portaudio;
 use portaudio as pa;
 
 use ringbuf;
+use hound::Error;
+
 const RINGBUFFER_SIZE:usize = 5000;
 
 const SAMPLE_RATE: f64 = 44_100.0;
@@ -18,7 +20,9 @@ const INPUT_FRAMES_PER_BUFFER: u32 = 256;
 // Sine Wave Parameters
 const TABLE_SIZE: usize = 100;
 
-pub(crate) fn run_server() {
+pub(crate) fn run_server() -> Result<(), Box::<std::error::Error>> {
+    return Ok(());
+
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
     println!("Server listening on port 3333");
@@ -111,7 +115,6 @@ fn stream_mic(tcp_stream: &mut TcpStream, mut duration: f64) -> Result<(), Box<d
     let input_stream_callback = move |pa::InputStreamCallbackArgs {
                                           buffer,
                                           frames,
-                                          time,
                                           ..
                                       }| {
         duration -= frames as f64 / SAMPLE_RATE;
@@ -126,7 +129,6 @@ fn stream_mic(tcp_stream: &mut TcpStream, mut duration: f64) -> Result<(), Box<d
         rb_producer.push_slice(buffer);
 
         if duration > 0.0 {
-            println!("Input: {} frames", rb_producer.len());
             pa::Continue
         } else {
             println!("Finished mic input.");

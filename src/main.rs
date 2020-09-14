@@ -6,23 +6,56 @@ mod audio_stream;
 mod audio_buffer;
 
 use std::thread;
+use std::env;
 
 const BEEP_TEST:bool = false;
 const STREAM_TEST:bool = false;
-const CLIENT_SERVER_TEST_BEEP:bool = false;
-const CLIENT_SERVER_TEST_MIC:bool = true;
-const CLIENT2_TEST:bool = true;
+const CLIENT_SERVER_TEST:bool = true;
 
 
 #[allow(unreachable_code)]
 fn main() {
 
+    //=========================================
+    // Set parameters getting arguments: [mic/sin mode, num seconds]
+    let args: Vec<String> = env::args().collect();
+
+    let mic_mode;
+    let duration;
+    if (args.len() == 2) {
+        let arg_mode = &args[1];
+        let arg_num_seconds = &args[2];
+
+        // Mic/Sin mode argument
+        if arg_mode.contains("sin") {
+            mic_mode = false;
+        } else if arg_mode.contains("mic") {
+            mic_mode = true;
+        } else {
+            // Mic by default.
+            mic_mode = true;
+        }
+        // Duration argument
+        if let s = arg_num_seconds.parse::<u32>() {
+            duration = std::cmp::min::<u32>(s.unwrap(), 99); // Arg should not be 3-digits
+        } else {
+            duration = 10;
+        }
+    } else {
+        mic_mode = true;
+        duration = 10;
+    }
+
+    //=========================================
+
+    // TEST: Output a sine wave using PortAudio
     if BEEP_TEST {
         println!("Beep!");
         beep::beep();
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
+    // TEST: Stream input to output using PortAudio
     if STREAM_TEST {
         println!("Testing stream.");
 
@@ -33,64 +66,42 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
-
-    if CLIENT_SERVER_TEST_BEEP {
-        println!("Running beep through Tcp protocol: ");
-        std::thread::sleep(std::time::Duration::from_millis(100));
-
-
-        println!("Running server.");
-
-        std::thread::spawn(|| {
-            server::run_server();
-        });
-
-        std::thread::sleep(std::time::Duration::from_millis(100));
-
-        println!("Running client 1.");
-
-        std::thread::spawn(|| {
-            client::run_client(false);
-        });
-
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-
-    if CLIENT_SERVER_TEST_MIC {
+    //=========================================
+    // Stream input to output using PortAudio and through a TCP Stream.
+    if CLIENT_SERVER_TEST {
         println!("Now running audio stream through TCP.");
-        std::thread::sleep(std::time::Duration::from_millis(20));
         println!("(WATCH OUT FOR FEEDBACK!)");
         std::thread::sleep(std::time::Duration::from_millis(100));
 
         println!("Running server.");
-
-        std::thread::spawn(|| {
+        let server_handle = std::thread::spawn(|| {
             server::run_server();
         });
 
         std::thread::sleep(std::time::Duration::from_millis(100));
 
-        println!("Running client 1.");
-
-        std::thread::spawn(|| {
-            client::run_client(true);
+        println!("Running client.");
+        let client_handle = std::thread::spawn(move || {
+            client::run_client(mic_mode, duration.clone() as i32);
         });
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
+        // ========================
+        // Block on waiting for response.
+        let server_result = server_handle.join();
+        println!("Server thread finished.");
+        let client_result = client_handle.join();
+        println!("Client thread finished.");
 
-    //infinite loop.
-    loop {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-    if CLIENT2_TEST {
-        println!("Running client 2.");
-
-        std::thread::spawn(|| {
-            client::run_client(false);
-        });
+        // Output if everything went fine
+        if server_result.is_ok() && client_result.is_ok() {
+            println!("Looks like a success.");
+        } else if server_result.is_err() && client_result.is_err() {
+            println!("Both threads failed!");
+        } else if server_result.is_err() {
+            println!("Server thread failed!");
+        } else if client_result.is_err() {
+            println!("Client thread failed!");
+        }
     }
 }
 

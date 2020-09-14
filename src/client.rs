@@ -16,42 +16,32 @@ const CHANNELS: i32 = 1;
 const INTERLEAVED: bool = true;
 const OUTPUT_FRAMES_PER_BUFFER: u32 = 256;
 
-//===========================================
-// PARAMETERS
-const NUM_SECONDS:i32 = 10;
+pub(crate) fn run_client(mic_mode:bool, duration:i32) -> Result<(), Box::<dyn std::error::Error>> {
+    TcpStream::connect("localhost:3333")?;
 
+    let mut tcp_stream = result.unwrap();
+    println!("Successfully connected to server in port 3333.");
 
-pub(crate) fn run_client(mic_mode:bool) {
-    let result = TcpStream::connect("localhost:3333");
-    if result.is_ok() {
-        let mut tcp_stream = result.unwrap();
-        println!("Successfully connected to server in port 3333.");
+    let mode = if mic_mode { "mic" } else { "sin" };
+    let msg = format!("stream {} {:02}s", mode, duration);
 
-        let mode = if mic_mode { "mic" } else { "sin" };
-        let msg = format!("stream {} {:02}s", mode, NUM_SECONDS);
+    println!("Sending message: {}", msg);
+    tcp_stream.write_all(msg.as_bytes());
 
-        println!("Sending message: {}", msg);
-        tcp_stream.write_all(msg.as_bytes());
-
-        let mut dummy = [0;10];
-        loop {
-            // Wait to catch signal.
-            if tcp_stream.peek(&mut dummy).is_ok() {
-                break;
-            }
+    let mut dummy = [0;10];
+    loop {
+        // Wait to catch signal.
+        if tcp_stream.peek(&mut dummy).is_ok() {
+            break;
         }
-        // Begin audio stream
-        stream_audio(tcp_stream);
-
-    } else {
-        println!("Error connection to server!");
     }
-    println!("Terminated.");
+    // Begin audio stream
+    stream_audio(tcp_stream, duration);
 }
 
 /// On connection with TCP Stream: this creates a PortAudio instance
 /// and streams the TCP data through to it using a ringbuffer.
-fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
+fn stream_audio (mut tcp_stream: TcpStream, duration:i32) -> Result<(), pa::Error> {
 
     // Allocate TCP buffer
     let mut tcp_buffer = [0 as u8; 300];
@@ -62,7 +52,7 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
         = ringbuf::RingBuffer::<f32>::new(RINGBUFFER_SIZE).split();
 
     // Run TCP Listener
-    std::thread::spawn(move || {
+    let tcp_listener_handle = std::thread::spawn(move || {
         let mut time_out = false;
         while !time_out {
             if tcp_stream.read_exact(&mut tcp_buffer).is_ok() {
@@ -70,18 +60,19 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
                 rb_producer.push_slice(u8_to_f32(&mut tcp_buffer));
             } else {
                 // Timeout check - 50ms waiting time
-                for mut t in 50..0
+                for t in 50..0
                 {
                     // Wait 1ms before check
                     std::thread::sleep(std::time::Duration::from_millis(1));
 
                     // Use peek to determine if any data has come through
                     let peek = tcp_stream.peek(&mut tcp_buffer); //inefficient
-                    if peek.is_ok() && peek.unwrap() > 0 as usize {
+                    if peek.is_ok() && peek.unwrap() > 0 as usize { //todo err means peek @ nothing?
                         break;
                     } else if t == 0 {
                         // Timed out
                         println!("Timed out TCP stream.");
+                        // todo return error
                         time_out = true;
                     }
                 }
@@ -96,7 +87,7 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
     // Create Portaudio object
     let pa = pa::PortAudio::new()?;
 
-    let mut output_settings =
+    let output_settings =
         pa.default_output_stream_settings::
         <f32>(CHANNELS, SAMPLE_RATE, OUTPUT_FRAMES_PER_BUFFER)?;
 
@@ -111,7 +102,6 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
         let len = rb_consumer.pop_slice(&mut buffer[..frames]);
 
         if len > 0 {
-            println!("Output: {} frames", rb_consumer.len());
             pa::Continue
         } else {
             for time_out in 10..0 {
@@ -135,8 +125,8 @@ fn stream_audio (mut tcp_stream: TcpStream) -> Result<(), pa::Error> {
     output_stream.start()?;
 
     // plays for pre-programmed amount of time.
-    println!("Play for {} seconds.", NUM_SECONDS);
-    pa.sleep(NUM_SECONDS * 1_000 + 3);
+    println!("Play for {} seconds.", duration);
+    pa.sleep(duration * 1_000 + 3);
 
     output_stream.stop()?;
     output_stream.close()?;

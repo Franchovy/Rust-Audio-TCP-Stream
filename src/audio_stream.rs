@@ -53,13 +53,12 @@ impl AudioStream {
             let input_params = pa::StreamParameters::<f32>::new(def_input, CHANNELS, INTERLEAVED, latency);
 
             pa.is_input_format_supported(input_params, SAMPLE_RATE)?;
-            let mut input_settings = pa::InputStreamSettings::new(input_params, SAMPLE_RATE, INPUT_FRAMES_PER_BUFFER);
+            let input_settings = pa::InputStreamSettings::new(input_params, SAMPLE_RATE, INPUT_FRAMES_PER_BUFFER);
 
             // Define callback -> send input stream into ringbuffer
             let input_stream_callback = move |pa::InputStreamCallbackArgs {
                                                   buffer,
                                                   frames,
-                                                  time,
                                                   ..
                                               }| {
                 duration -= frames as f64 / SAMPLE_RATE;
